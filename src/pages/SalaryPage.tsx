@@ -4,6 +4,7 @@ import type { StaffRes } from "../model/Staff";
 import type { PagedResponse } from "../apis/pagedResponse";
 import { SalaryService } from "../services/SalaryService";
 import { StaffService } from "../services/StaffService";
+import { getImageUrl } from "../apis/apiClient";
 import { toast } from "react-toastify";
 import {
   Button,
@@ -41,14 +42,6 @@ export default function SalaryPage() {
   // Reference Data
   const [staffList, setStaffList] = useState<StaffRes[]>([]);
 
-  const getImageUrl = (photoPath?: string) => {
-    if (!photoPath) return "";
-    if (photoPath.startsWith("http://") || photoPath.startsWith("https://")) {
-      return photoPath;
-    }
-    const cleanPath = photoPath.replace(/\\/g, "/");
-    return `http://localhost:5000/${cleanPath.startsWith("/") ? cleanPath.slice(1) : cleanPath}`;
-  };
 
   const fetchSalaries = async (page: number = 1, pageSize: number = 10) => {
     setLoading(true);

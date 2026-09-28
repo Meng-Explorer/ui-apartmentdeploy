@@ -4,6 +4,7 @@ import type { Position } from "../model/Position";
 import type { PagedResponse } from "../apis/pagedResponse";
 import { StaffService } from "../services/StaffService";
 import { PositionService } from "../services/PositionService";
+import { getImageUrl } from "../apis/apiClient";
 import { toast } from "react-toastify";
 import {
   Button,
@@ -56,14 +57,6 @@ export default function StaffPage() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const getImageUrl = (photoPath?: string) => {
-    if (!photoPath) return "";
-    if (photoPath.startsWith("http://") || photoPath.startsWith("https://")) {
-      return photoPath;
-    }
-    const cleanPath = photoPath.replace(/\\/g, "/");
-    return `http://localhost:5000/${cleanPath.startsWith("/") ? cleanPath.slice(1) : cleanPath}`;
-  };
 
   const fetchStaffs = async (page: number = 1, pageSize: number = 10) => {
     setLoading(true);

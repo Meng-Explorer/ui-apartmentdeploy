@@ -17,6 +17,7 @@ import { BuildingService } from "../services/BuildingService";
 import { FloorService } from "../services/FloorService";
 import { UserService } from "../services/UserService";
 import { RoleService } from "../services/RoleService";
+import { getImageUrl } from "../apis/apiClient";
 
 export default function HomePage() {
   const [stats, setStats] = useState({
@@ -31,15 +32,6 @@ export default function HomePage() {
   const [buildingsList, setBuildingsList] = useState<Building[]>([]);
   const [rolesList, setRolesList] = useState<Role[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-
-  const getImageUrl = (imagePath?: string) => {
-    if (!imagePath) return "";
-    if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
-      return imagePath;
-    }
-    const cleanPath = imagePath.replace(/\\/g, "/");
-    return `http://localhost:5000/${cleanPath.startsWith("/") ? cleanPath.slice(1) : cleanPath}`;
-  };
 
   const fetchDashboardData = async () => {
     setLoading(true);

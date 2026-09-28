@@ -4,6 +4,7 @@ import type { ExpenseTypeRes } from "../model/ExpenseType";
 import type { PagedResponse } from "../apis/pagedResponse";
 import { OtherExpenseService } from "../services/OtherExpenseService";
 import { ExpenseTypeService } from "../services/ExpenseTypeService";
+import { getImageUrl } from "../apis/apiClient";
 import { toast } from "react-toastify";
 import {
   Button,
@@ -54,14 +55,6 @@ export default function OtherExpensePage() {
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
 
-  const getImageUrl = (photoPath?: string) => {
-    if (!photoPath) return "";
-    if (photoPath.startsWith("http://") || photoPath.startsWith("https://")) {
-      return photoPath;
-    }
-    const cleanPath = photoPath.replace(/\\/g, "/");
-    return `http://localhost:5000/${cleanPath.startsWith("/") ? cleanPath.slice(1) : cleanPath}`;
-  };
 
   const fetchExpenses = async (page: number = 1, pageSize: number = 10) => {
     setLoading(true);

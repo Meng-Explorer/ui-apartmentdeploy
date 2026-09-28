@@ -1,6 +1,16 @@
 import axios from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL || "https://apartment-api-p06n.onrender.com/api";
+export const API_URL = import.meta.env.VITE_API_URL || "https://apartment-api-p06n.onrender.com/api";
+export const BACKEND_URL = API_URL.replace(/\/api\/?$/, "");
+
+export const getImageUrl = (imagePath?: string | null): string => {
+  if (!imagePath) return "";
+  if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
+    return imagePath;
+  }
+  const cleanPath = imagePath.replace(/\\/g, "/");
+  return `${BACKEND_URL}/${cleanPath.startsWith("/") ? cleanPath.slice(1) : cleanPath}`;
+};
 
 const apiClient = axios.create({
   baseURL: API_URL,

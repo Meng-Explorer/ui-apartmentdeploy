@@ -14,6 +14,7 @@ import {
 import type { Guest, GuestReq } from "../model/Guest";
 import type { PagedResponse } from "../apis/pagedResponse";
 import { GuestService } from "../services/GuestService";
+import { getImageUrl } from "../apis/apiClient";
 import { toast } from "react-toastify";
 
 export default function GuestPage() {
@@ -41,15 +42,6 @@ export default function GuestPage() {
   };
 
   const [formData, setFormData] = useState<GuestReq>(initialForm);
-
-  const getImageUrl = (imagePath?: string) => {
-    if (!imagePath) return "";
-    if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
-      return imagePath;
-    }
-    const cleanPath = imagePath.replace(/\\/g, "/");
-    return `http://localhost:5000/${cleanPath.startsWith("/") ? cleanPath.slice(1) : cleanPath}`;
-  };
 
   const formatDateForInput = (dateStr?: string) => {
     if (!dateStr) return "";
