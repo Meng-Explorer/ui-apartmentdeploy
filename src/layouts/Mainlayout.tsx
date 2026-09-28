@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Dropdown, Badge } from "react-bootstrap";
+import MyAccountModal from "../components/MyAccountModal";
 
 export default function MainLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState<boolean>(false);
+  const [showAccountModal, setShowAccountModal] = useState<boolean>(false);
 
   // Auto-detect which group is active based on path
   const isApartmentRoute = ["/building", "/floor", "/room"].some((p) => location.pathname.startsWith(p));
@@ -524,9 +526,9 @@ export default function MainLayout() {
                 </div>
 
                 <Dropdown.Item
-                  as={Link}
-                  to="/user"
+                  onClick={() => setShowAccountModal(true)}
                   className="rounded-3 py-2 text-secondary d-flex align-items-center gap-2.5"
+                  style={{ cursor: "pointer" }}
                 >
                   <i className="fa-regular fa-user text-primary" style={{ width: "18px" }}></i>
                   <span className="small fw-semibold">My Account</span>
@@ -587,6 +589,13 @@ export default function MainLayout() {
           </div>
         </footer>
       </div>
+
+      {/* Account Profile Modal */}
+      <MyAccountModal
+        show={showAccountModal}
+        onHide={() => setShowAccountModal(false)}
+        onLogout={handleLogout}
+      />
     </div>
   );
 }
