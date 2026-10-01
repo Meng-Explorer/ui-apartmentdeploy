@@ -5,7 +5,11 @@ export const BACKEND_URL = API_URL.replace(/\/api\/?$/, "");
 
 export const getImageUrl = (imagePath?: string | null): string => {
   if (!imagePath) return "";
-  if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
+  if (
+    imagePath.startsWith("http://") ||
+    imagePath.startsWith("https://") ||
+    imagePath.startsWith("data:")
+  ) {
     return imagePath;
   }
   const cleanPath = imagePath.replace(/\\/g, "/");
