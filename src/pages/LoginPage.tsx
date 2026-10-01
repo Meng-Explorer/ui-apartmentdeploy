@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Button, Form, InputGroup, Spinner } from "react-bootstrap";
+import { useState, useEffect } from "react";
+import { Button, Form, InputGroup, Spinner, Alert } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import type { AuthLogin } from "../model/AuthLogin";
@@ -15,8 +15,64 @@ export default function LoginPage() {
     password: "",
   });
 
+  // 5-Attempt & 3-Minute Lockout State
+  const [failedAttempts, setFailedAttempts] = useState<number>(() => {
+    const saved = localStorage.getItem("login_failed_attempts");
+    return saved ? parseInt(saved, 10) : 0;
+  });
+
+  const [isLocked, setIsLocked] = useState<boolean>(false);
+  const [secondsLeft, setSecondsLeft] = useState<number>(0);
+
+  // Initialize and tick countdown timer
+  useEffect(() => {
+    const checkLockout = () => {
+      const lockoutUntilStr = localStorage.getItem("login_lockout_until");
+      if (lockoutUntilStr) {
+        const lockoutUntil = parseInt(lockoutUntilStr, 10);
+        const remaining = Math.ceil((lockoutUntil - Date.now()) / 1000);
+        if (remaining > 0) {
+          setIsLocked(true);
+          setSecondsLeft(remaining);
+          return true;
+        } else {
+          // Cooldown expired
+          setIsLocked(false);
+          setSecondsLeft(0);
+          setFailedAttempts(0);
+          localStorage.removeItem("login_lockout_until");
+          localStorage.removeItem("login_failed_attempts");
+        }
+      }
+      return false;
+    };
+
+    checkLockout();
+
+    const interval = setInterval(() => {
+      const active = checkLockout();
+      if (!active) {
+        clearInterval(interval);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isLocked]);
+
+  const formatTime = (totalSeconds: number) => {
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
+    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  };
+
   const onLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    if (isLocked) {
+      toast.error(`Account is locked. Please wait ${formatTime(secondsLeft)}.`);
+      return;
+    }
+
     if (!formData.username.trim() || !formData.password.trim()) {
       toast.warning("Please fill in both username and password.");
       return;
@@ -25,6 +81,13 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const response = await AuthService.login(formData);
+
+      // Successful login: clear lockout tracking
+      localStorage.removeItem("login_lockout_until");
+      localStorage.removeItem("login_failed_attempts");
+      setFailedAttempts(0);
+      setIsLocked(false);
+
       localStorage.setItem("token", response.data.token);
       if (response.data.user) {
         localStorage.setItem("user", JSON.stringify(response.data.user));
@@ -32,10 +95,32 @@ export default function LoginPage() {
       if (response.data.roles) {
         localStorage.setItem("roles", JSON.stringify(response.data.roles));
       }
+
       toast.success("Welcome back! Logged in successfully.");
       navigate("/");
-    } catch (error) {
-      toast.error(`${error}`);
+    } catch (error: any) {
+      const errorMsg = String(error || "");
+
+      // Check if backend locked the account or if attempts hit 5
+      if (
+        errorMsg.toLowerCase().includes("locked") ||
+        errorMsg.toLowerCase().includes("too many failed") ||
+        failedAttempts + 1 >= 5
+      ) {
+        const lockoutTime = Date.now() + 180 * 1000; // 3 minutes
+        localStorage.setItem("login_lockout_until", lockoutTime.toString());
+        localStorage.setItem("login_failed_attempts", "5");
+        setFailedAttempts(5);
+        setIsLocked(true);
+        setSecondsLeft(180);
+        toast.error("Too many failed attempts (5/5). Your account is locked for 3 minutes.");
+      } else {
+        const newAttempts = failedAttempts + 1;
+        setFailedAttempts(newAttempts);
+        localStorage.setItem("login_failed_attempts", newAttempts.toString());
+        const remaining = 5 - newAttempts;
+        toast.error(`Invalid credentials. ${remaining} attempt(s) remaining before a 3-minute lockout.`);
+      }
     } finally {
       setLoading(false);
     }
@@ -51,18 +136,62 @@ export default function LoginPage() {
             style={{
               width: "56px",
               height: "56px",
-              background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+              background: isLocked
+                ? "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)"
+                : "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
               color: "#ffffff",
               fontSize: "22px",
+              transition: "all 0.3s ease",
             }}
           >
-            <i className="fa-solid fa-building-user"></i>
+            <i className={`fa-solid ${isLocked ? "fa-shield-halved" : "fa-building-user"}`}></i>
           </div>
-          <h3 className="fw-bold text-dark mb-1">Welcome Back</h3>
+          <h3 className="fw-bold text-dark mb-1">
+            {isLocked ? "Account Locked" : "Welcome Back"}
+          </h3>
           <p className="text-muted small mb-0">
-            Sign in to access your apartment management system
+            {isLocked
+              ? "Security protection triggered due to repeated failed logins"
+              : "Sign in to access your apartment management system"}
           </p>
         </div>
+
+        {/* Lockout Banner Alert */}
+        {isLocked && (
+          <Alert
+            variant="danger"
+            className="rounded-4 p-3 shadow-sm border-0 mb-4 text-center bg-danger bg-opacity-10 border border-danger border-opacity-25"
+          >
+            <div className="d-flex align-items-center justify-content-center gap-2 mb-1 fw-bold text-danger">
+              <i className="fa-solid fa-clock-rotate-left fs-5"></i>
+              <span>Security Lockout Active</span>
+            </div>
+            <div className="small text-muted mb-2">
+              You entered an incorrect username or password 5 times. Please wait for the cooldown timer:
+            </div>
+            <div className="fs-3 fw-bold text-danger font-monospace">
+              ⏳ {formatTime(secondsLeft)}
+            </div>
+          </Alert>
+        )}
+
+        {/* Remaining Attempts Warning */}
+        {!isLocked && failedAttempts > 0 && (
+          <Alert
+            variant="warning"
+            className="rounded-3 py-2 px-3 mb-3 small d-flex align-items-center justify-content-between border-0 bg-warning bg-opacity-10 text-dark"
+          >
+            <div className="d-flex align-items-center gap-2">
+              <i className="fa-solid fa-triangle-exclamation text-warning fs-6"></i>
+              <span>
+                <strong>{5 - failedAttempts}</strong> attempt(s) remaining
+              </span>
+            </div>
+            <span className="badge bg-warning text-dark rounded-pill">
+              {failedAttempts}/5 used
+            </span>
+          </Alert>
+        )}
 
         {/* Login Form */}
         <Form onSubmit={onLogin}>
@@ -84,7 +213,7 @@ export default function LoginPage() {
                 placeholder="Enter your username"
                 required
                 autoFocus
-                disabled={loading}
+                disabled={loading || isLocked}
               />
             </InputGroup>
           </Form.Group>
@@ -106,12 +235,12 @@ export default function LoginPage() {
                 }
                 placeholder="Enter your password"
                 required
-                disabled={loading}
+                disabled={loading || isLocked}
               />
               <InputGroup.Text
                 className="pe-3 cursor-pointer"
-                style={{ cursor: "pointer" }}
-                onClick={() => setShowPassword(!showPassword)}
+                style={{ cursor: isLocked ? "not-allowed" : "pointer" }}
+                onClick={() => !isLocked && setShowPassword(!showPassword)}
                 title={showPassword ? "Hide password" : "Show password"}
               >
                 <i
@@ -123,7 +252,7 @@ export default function LoginPage() {
             </InputGroup>
           </Form.Group>
 
-          {/* Remember Me & Security Notice */}
+          {/* Remember Me */}
           <div className="d-flex justify-content-between align-items-center mb-4">
             <Form.Check
               type="checkbox"
@@ -132,20 +261,28 @@ export default function LoginPage() {
               className="small text-muted"
               checked={rememberMe}
               onChange={(e) => setRememberMe(e.target.checked)}
-              disabled={loading}
+              disabled={loading || isLocked}
             />
           </div>
 
           {/* Submit Button */}
           <Button
             type="submit"
-            className="w-100 btn-login-submit d-flex align-items-center justify-content-center gap-2"
-            disabled={loading}
+            variant={isLocked ? "secondary" : "primary"}
+            className={`w-100 btn-login-submit d-flex align-items-center justify-content-center gap-2 ${
+              isLocked ? "bg-secondary border-secondary" : ""
+            }`}
+            disabled={loading || isLocked}
           >
             {loading ? (
               <>
                 <Spinner animation="border" size="sm" />
                 <span>Signing In...</span>
+              </>
+            ) : isLocked ? (
+              <>
+                <i className="fa-solid fa-lock"></i>
+                <span>Locked ({formatTime(secondsLeft)})</span>
               </>
             ) : (
               <>
@@ -159,4 +296,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
