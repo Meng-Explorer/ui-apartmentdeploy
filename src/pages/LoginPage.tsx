@@ -101,6 +101,17 @@ export default function LoginPage() {
     } catch (error: any) {
       const errorMsg = String(error || "");
 
+      // If it's a connection / network error, display the real error without penalizing attempts
+      if (
+        errorMsg.toLowerCase().includes("cannot connect") ||
+        errorMsg.toLowerCase().includes("network") ||
+        errorMsg.toLowerCase().includes("timeout") ||
+        errorMsg.toLowerCase().includes("failed to fetch")
+      ) {
+        toast.error(errorMsg);
+        return;
+      }
+
       // Check if backend locked the account or if attempts hit 5
       if (
         errorMsg.toLowerCase().includes("locked") ||
@@ -119,7 +130,7 @@ export default function LoginPage() {
         setFailedAttempts(newAttempts);
         localStorage.setItem("login_failed_attempts", newAttempts.toString());
         const remaining = 5 - newAttempts;
-        toast.error(`Invalid credentials. ${remaining} attempt(s) remaining before a 3-minute lockout.`);
+        toast.error(errorMsg || `Invalid credentials. ${remaining} attempt(s) remaining before a 3-minute lockout.`);
       }
     } finally {
       setLoading(false);
