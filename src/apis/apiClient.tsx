@@ -1,6 +1,6 @@
 import axios from "axios";
 
-export const API_URL = import.meta.env.VITE_API_URL || "https://apartment-api-p06n.onrender.com/api";
+export const API_URL = import.meta.env.VITE_API_URL || "http://lang-app.runasp.net/api";
 export const BACKEND_URL = API_URL.replace(/\/api\/?$/, "");
 
 export const getImageUrl = (imagePath?: string | null): string => {
@@ -63,7 +63,7 @@ apiClient.interceptors.response.use(
 
     let message =
       data?.message ||
-      data?.Message ||
+      data?.Message ||  
       data?.title ||
       (typeof data === "string" ? data : null) ||
       (status === 404 ? "API Endpoint not found (404). Please restart backend API." : null) ||

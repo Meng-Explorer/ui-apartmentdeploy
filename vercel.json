@@ -1,6 +1,14 @@
 {
   "rewrites": [
     {
+      "source": "/api/:path*",
+      "destination": "http://lang-app.runasp.net/api/:path*"
+    },
+    {
+      "source": "/uploads/:path*",
+      "destination": "http://lang-app.runasp.net/uploads/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/"
     }
