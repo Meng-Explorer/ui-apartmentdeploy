@@ -1,7 +1,15 @@
 import axios from "axios";
 
-export const API_URL = import.meta.env.VITE_API_URL || "http://lang-app.runasp.net/api";
-export const BACKEND_URL = API_URL.replace(/\/api\/?$/, "");
+const isHttps = typeof window !== "undefined" && window.location.protocol === "https:";
+
+// When hosted on HTTPS (e.g. Vercel), use relative path /api to let Vercel proxy to HTTP backend and avoid Mixed Content error
+export const API_URL = isHttps
+  ? "/api"
+  : (import.meta.env.VITE_API_URL || "http://lang-app.runasp.net/api");
+
+export const BACKEND_URL = isHttps
+  ? ""
+  : API_URL.replace(/\/api\/?$/, "");
 
 export const getImageUrl = (imagePath?: string | null): string => {
   if (!imagePath) return "";
